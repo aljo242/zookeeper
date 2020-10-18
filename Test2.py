@@ -40,6 +40,11 @@ if __name__ == "__main__":
         logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         logging.critical(val)
 
+    client.Add_Update("yo", b"test2new")
+    val = client.Read("yo")
+    if val:
+        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        logging.critical(val)
 
     # todo
     # add watchers to subnodes of the leader node
@@ -47,6 +52,13 @@ if __name__ == "__main__":
     # FART
 
     del server1
+    
+    client.Add_Update("yo", b"test2")
+    val = client.Read("yo")
+    if val:
+        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        logging.critical(val)
+
     del server2
     del server3
 

@@ -1,31 +1,10 @@
 from kazoo.client import KazooClient
 from kazoo.client import KazooState
-import socket
 import logging
 
 # set to debug for now
 logging.basicConfig(level = logging.ERROR)
 
-"""
-def myListener(state):
-	if state == KazooState.LOST:
-		# register connection lost
-		logging.critical("connection is LOST")
-	elif state == KazooState.SUSPENDED:
-		# Handle being disconnected from zookeeper
-		logging.critical("connection is SUSPENDED")
-	else:
-		# handle being connected/reconnected to zookeeper
-		logging.critical("connection is ...")
-"""
-
-def UpdateWatcher(event):
-    print("UPDATE WATCH!!!!!!!!")
-    print(event)
-
-def ReadWatcher(event):
-    print("READ WATCH!!!!!!!!")    
-    print(event)
 
 
 
@@ -56,7 +35,7 @@ class Client:
     def Read(self, key):
         path = self.leaderNode + '/' + key
         if self.zk.exists(path):
-            val = self.zk.get(path, watch=ReadWatcher)[0]
+            val = self.zk.get(path, watch=self.DataWatcher)[0]
             print(val)
             self.dictionary[key] = val
             return val
@@ -70,23 +49,12 @@ class Client:
         self.dictionary[key] = value
         path = self.leaderNode + '/' + key
         self.zk.ensure_path(path)
-        keys = self.zk.get_children(self.leaderNode)
-        print(f"SET PATH IS: {path}")
-        print("Printing Keys...")
-        for key in keys: 
-            print(key)
         self.zk.set(path, value)
-
-        keys = self.zk.get_children(self.leaderNode)
-        print(f"SET PATH IS: {path}")
-        print("Printing NEW Keys...")
-        for key in keys: 
-            print(key)
 
 
     def findLeader(self):
         for node in self.electionNodeList:
-            val = self.zk.get(node)[0]
+            val = self.zk.get(node, watch=self.ElectionWatcher)[0]
             if val == b'leader':
                 return node
 
@@ -97,5 +65,25 @@ class Client:
             newNode = self.electionPrefix + node
             self.electionNodeList[index] = newNode
             index += 1
-            
+
+    #### WATCHER FUNCTIONS ####
+    def ElectionWatcher(self, event):
+        print("CLIENT ELECTION WATCH!!!!!!!!")
+        if event.type == 'DELETED':
+            print("**************Deleted Event**************")
+            self.getElectionServers() 
+            for node in self.electionNodeList:
+                print(node)
+            self.leaderNode = self.findLeader()
+            print(f"LEADER NODE: {self.leaderNode}")
+            # on a deleted event, "election" occurs by querying the election servers again
+
+    def DataWatcher(self, event):
+        print("CLIENT DATA WATCH!!!!!!!!")    
+        #if event.type == 'CHANGED':
+        #    print("**************Changed Event**************")
+        #    self.getElectionServers()
+        #    
+        #    for node in self.electionNodeList:
+        #        print(node)
 
