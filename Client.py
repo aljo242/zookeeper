@@ -4,8 +4,9 @@ import socket
 import logging
 
 # set to debug for now
-logging.basicConfig(level = logging.DEBUG)
+logging.basicConfig(level = logging.ERROR)
 
+"""
 def myListener(state):
 	if state == KazooState.LOST:
 		# register connection lost
@@ -16,6 +17,18 @@ def myListener(state):
 	else:
 		# handle being connected/reconnected to zookeeper
 		logging.critical("connection is ...")
+"""
+
+def UpdateWatcher(event):
+    print("UPDATE WATCH!!!!!!!!")
+    print(event)
+
+def ReadWatcher(event):
+    print("READ WATCH!!!!!!!!")    
+    print(event)
+
+
+
 
 class Client:
     def __init__(self, zk_connection):
@@ -42,9 +55,13 @@ class Client:
 
     def Read(self, key):
         path = self.leaderNode + '/' + key
-        val = self.zk.get(path)[0]
-        print(val)
-        self.dictionary[key] = val
+        if self.zk.exists(path):
+            val = self.zk.get(path, watch=ReadWatcher)[0]
+            print(val)
+            self.dictionary[key] = val
+            return val
+
+        return None
 
     # check if znode exists under current leader node
     # if exists, set at that node

@@ -5,7 +5,7 @@ from Server import Server
 from Client import Client
 
 # set to debug for now
-logging.basicConfig(level = logging.DEBUG)
+logging.basicConfig(level = logging.ERROR)
 
 def myListener(state):
 	if state == KazooState.LOST:
@@ -18,7 +18,6 @@ def myListener(state):
 		# handle being connected/reconnected to zookeeper
 		logging.critical("connection is ...")
 
-
 if __name__ == "__main__":
     zk = KazooClient(hosts = '127.0.0.1:2181')
     zk.start()
@@ -30,6 +29,22 @@ if __name__ == "__main__":
 
     client = Client(zk)
     client.Add_Update("hello", b'test')
+    val = client.Read("hello")
+    client.Add_Update("yo", b"test2")
+
+    if val:
+        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        logging.critical(val)
+    val = client.Read("yo")
+    if val:
+        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        logging.critical(val)
+
+
+    # todo
+    # add watchers to subnodes of the leader node
+    # add watchers to check on a new /election/ dead node
+    # FART
 
     del server1
     del server2
