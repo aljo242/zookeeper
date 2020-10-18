@@ -24,19 +24,18 @@ class Client:
         self.zk.ensure_path(self.clientPrefix)
         
         self.ID = self.zk.create(self.clientPrefix, value = b"val", acl= None, ephemeral=True, sequence=True, makepath=True)
-        print(self.ID)
+        print(f"New client connection: {self.ID}")
 
         # check children at node
         self.getElectionServers()
         self.leaderNode = self.findLeader()
-        logging.critical(f"CLIENT {self.ID}, LEADER NODE: {self.leaderNode}")
  
 
     def Read(self, key):
         path = self.leaderNode + '/' + key
         if self.zk.exists(path):
-            val = self.zk.get(path, watch=self.DataWatcher)[0]
-            print(val)
+            val = self.zk.get(path)[0]
+            #print(val)
             self.dictionary[key] = val
             return val
 
@@ -48,15 +47,22 @@ class Client:
     def Add_Update(self, key, value):
         self.dictionary[key] = value
         path = self.leaderNode + '/' + key
+        #print(f"***********Updating at path: {path}...")
         self.zk.ensure_path(path)
         self.zk.set(path, value)
 
 
     def findLeader(self):
         for node in self.electionNodeList:
-            val = self.zk.get(node, watch=self.ElectionWatcher)[0]
-            if val == b'leader':
-                return node
+            try:
+                self.zk.exists(node)
+                val = self.zk.get(node, watch=self.ElectionWatcher)[0]
+                if val == b'leader':
+                    print(f"CLIENT {self.ID}, LEADER NODE: {node}")
+                    return node
+            except:
+                print("All Servers Down!")
+                return None
 
     def getElectionServers(self):
         self.electionNodeList = self.zk.get_children(self.electionPrefix)
@@ -68,22 +74,8 @@ class Client:
 
     #### WATCHER FUNCTIONS ####
     def ElectionWatcher(self, event):
-        print("CLIENT ELECTION WATCH!!!!!!!!")
-        if event.type == 'DELETED':
-            print("**************Deleted Event**************")
-            self.getElectionServers() 
-            for node in self.electionNodeList:
-                print(node)
-            self.leaderNode = self.findLeader()
-            print(f"LEADER NODE: {self.leaderNode}")
-            # on a deleted event, "election" occurs by querying the election servers again
-
-    def DataWatcher(self, event):
-        print("CLIENT DATA WATCH!!!!!!!!")    
-        #if event.type == 'CHANGED':
-        #    print("**************Changed Event**************")
-        #    self.getElectionServers()
-        #    
-        #    for node in self.electionNodeList:
-        #        print(node)
+        print("**************Deleted Event**************")
+        self.leaderNode = self.findLeader()
+        print(f"Updated client leader node: {self.leaderNode}")
+        # on a deleted event, "election" occurs by querying the election servers again
 

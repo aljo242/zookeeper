@@ -28,37 +28,33 @@ if __name__ == "__main__":
     server3 = Server(zk)
 
     client = Client(zk)
+    print("Putting value: 'test' to key: 'hello'...")
     client.Add_Update("hello", b'test')
+    print("Reading value from key: 'hello'...")
     val = client.Read("hello")
+    print(f"\tval = {val}")
+    print("Putting value: 'test2' to key: 'yo'...")
     client.Add_Update("yo", b"test2")
-
-    if val:
-        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        logging.critical(val)
+    print("Reading value from key: 'yo'...")
     val = client.Read("yo")
-    if val:
-        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        logging.critical(val)
+    print(f"\tval = {val}")
 
+    print("Putting value: 'test2new' to key: 'yo'...")
     client.Add_Update("yo", b"test2new")
+    print("Reading value from key: 'yo'...")
     val = client.Read("yo")
-    if val:
-        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        logging.critical(val)
+    print(f"\tval = {val}")
 
-    # todo
-    # add watchers to subnodes of the leader node
-    # add watchers to check on a new /election/ dead node
-    # FART
-
+    print("deleting the leader server...")
     del server1
-    
-    client.Add_Update("yo", b"test2")
-    val = client.Read("yo")
-    if val:
-        logging.critical("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        logging.critical(val)
 
+    print("Putting value: 'test2newnew' to key: 'yo'...")
+    client.Add_Update("yo", b"test2newnew")
+    print("Reading value from key: 'yo'...")
+    val = client.Read("yo")
+    print(f"\tval = {val}")
+
+    print("deleting the two remaining servers")
     del server2
     del server3
 

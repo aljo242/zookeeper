@@ -3,7 +3,7 @@ from kazoo.client import KazooState
 import logging
 
 # set to debug for now
-logging.basicConfig(level = logging.DEBUG)
+logging.basicConfig(level = logging.ERROR)
 
 def myListener(state):
 	if state == KazooState.LOST:
@@ -33,15 +33,17 @@ class Server():
         
         # check children at node
         self.updateElectionNodeList()
-        for node in self.electionNodeList:
-            logging.critical(node)
+
 
         self.ID = self.zk.create(self.electionPrefix, value = b"val", acl= None, ephemeral=False, sequence=True, makepath=False)
-        #logging.critical(f"SERVER ID IS: {self.ID}")
+        print(f"New Server Connection: {self.ID}")
 
         # check children at node
         self.updateElectionNodeList()
         self.selectLeader()
+        print("Current Connected Election Servers:")
+        for node in self.electionNodeList:
+            print(f"\t{node}")
 
     def updateElectionNodeList(self):
         self.electionNodeList = self.zk.get_children(self.electionPrefix)
@@ -53,23 +55,35 @@ class Server():
 
     def selectLeader(self):
         self.leaderNode = min(self.electionNodeList)
-        logging.critical(f"CURRENT LEADER NODE: {self.leaderNode}")
+        print(f"ELECTED LEADER NODE: {self.leaderNode}")
         if self.leaderNode == self.ID: # if i am the leader
             self.zk.set(self.ID, b"leader")
 
     def __del__(self):
-        logging.critical(f"Deleting server: {self.ID}...")
+        print(f"Deleting server: {self.ID}...")
         self.updateElectionNodeList()
+        self.selectLeader()
         # elect the new node if leader is dying
         if self.ID == self.leaderNode:
-            logging.critical("LEADER NODE IS DYING")
-            logging.critical(self.ID)
-            for node in self.electionNodeList:
-                print(node)
+            print("Leader Node is being shut down...")
             self.electionNodeList.remove(self.ID)
-            self.selectLeader()
-            for node in self.electionNodeList:
-                print(node)
+            if len(self.electionNodeList) > 0:
+                self.selectLeader()
+                self.zk.set(self.leaderNode, b'leader')
+                self.zk.set(self.ID, b'invalid')
+                print("New list of election connections:")
+                for node in self.electionNodeList:
+                    print(f"\t{node}")
+        # before deleting node, send all info to the new leader
+                keys = self.zk.get_children(self.ID)
+                if keys != None:
+                    for key in keys:
+                        path = self.ID + '/' + key
+                        value = self.zk.get(path)[0]
+                        newPath = self.leaderNode + '/' + key
+                        self.zk.ensure_path(newPath)
+                        self.zk.set(newPath, value)
+
         self.zk.delete(self.ID, recursive=True)
 
     def Read(self, key):
@@ -77,26 +91,6 @@ class Server():
 
     def Add_Update(self, key, value):
         self.dictionary[key] = value
-
-    def DataWatcher(self, event):
-        print("CLIENT DATA WATCH!!!!!!!!")    
-        if event.type == 'CHANGED':
-            print("**************Changed Event**************")
-            self.updateElectionNodeList()            
-            for node in self.electionNodeList:
-                print(node)
-
-        #### WATCHER FUNCTIONS ####
-    def ElectionWatcher(self, event):
-        print("SERVER ELECTION WATCH!!!!!!!!")
-        if event.type == 'DELETED':
-            print("**************Deleted Event**************")
-            self.updateElectionNodeList()            
-            for node in self.electionNodeList:
-                print(node)
-            self.selectLeader()
-            print(f"LEADER NODE: {self.leaderNode}")
-            # on a deleted event, "election" occurs by querying the election servers again
 
 
 if __name__ == "__main__":
