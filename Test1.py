@@ -51,25 +51,22 @@ if __name__ == "__main__":
     val = client.Read("yo")
     printVal(val)
 
-    print("Disconnecting the leader server...")
-    server1.Disconnect()
-
     print("Putting value: 'test2newnew' to key: 'yo'...")
     client.Add_Update("yo", b"test2newnew")
     print("Reading value from key: 'yo'...")
     val = client.Read("yo")
     printVal(val)
 
-    print("Disconnecting the leader server...")
-    server2.Disconnect()
-
     print("Reading value from key: 'hello'...")
     val = client.Read("hello")
     printVal(val)
 
+    print("Disconnecting All servers")
     time.sleep(1)
 
     server3.Disconnect()
+    server2.Disconnect()
+    server1.Disconnect()
 
     cleanUp(zk)
     zk.stop()

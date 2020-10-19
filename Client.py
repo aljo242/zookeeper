@@ -32,6 +32,7 @@ class Client:
  
 
     def Read(self, key):
+        self.leaderNode = self.findLeader()
         path = self.leaderNode + '/' + key
         if self.zk.exists(path):
             val = self.zk.get(path)[0]
@@ -45,21 +46,23 @@ class Client:
     # if exists, set at that node
     # if not, create a znode
     def Add_Update(self, key, value):
-        self.dictionary[key] = value
-        path = self.leaderNode + '/' + key
-        #print(f"***********Updating at path: {path}...")
-        self.zk.ensure_path(path)
-        self.zk.set(path, value)
+        self.getElectionServers()
+        for node in self.electionNodeList:
+            self.dictionary[key] = value
+            path = node + '/' + key
+            #print(f"***********Updating at path: {path}...")
+            self.zk.ensure_path(path)
+            self.zk.set(path, value)
+
 
 
     def findLeader(self):
-        for node in self.electionNodeList:
-            try:
-                self.zk.exists(node)
-                val = self.zk.get(node, watch=self.ElectionWatcher)[0]
-                if val == b'leader':
-                    print(f"CLIENT {self.ID}, LEADER NODE: {node}")
-                    return node
+            try:        
+                for node in self.electionNodeList:
+                    if self.zk.exists(node):
+                        val = self.zk.get(node, watch=self.ElectionWatcher)[0]
+                        if val == b'leader':
+                            return node
             except:
                 print("All Servers Down!")
                 return None
@@ -74,8 +77,10 @@ class Client:
 
     #### WATCHER FUNCTIONS ####
     def ElectionWatcher(self, event):
-        print("**************Deleted Event**************")
-        self.leaderNode = self.findLeader()
-        print(f"Updated client leader node: {self.leaderNode}")
-        # on a deleted event, "election" occurs by querying the election servers again
+        if (event.type == "DELETED"):
+            print("**************Deleted Event**************")
+            self.getElectionServers()
+            self.leaderNode = self.findLeader()
+            print(f"Updated client leader node: {self.leaderNode}")
+            # on a deleted event, "election" occurs by querying the election servers again
 

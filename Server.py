@@ -34,8 +34,7 @@ class Server():
         # check children at node
         self.updateElectionNodeList()
 
-
-        self.ID = self.zk.create(self.electionPrefix, value = b"val", acl= None, ephemeral=False, sequence=True, makepath=False)
+        self.ID = self.zk.create(self.electionPrefix, value = b"invalid", acl= None, ephemeral=False, sequence=True, makepath=False)
         print(f"New Server Connection: {self.ID}")
 
         # check children at node
@@ -46,7 +45,7 @@ class Server():
             print(f"\t{node}")
 
     def updateElectionNodeList(self):
-        self.electionNodeList = self.zk.get_children(self.electionPrefix)
+        self.electionNodeList = self.zk.get_children(self.electionPrefix, watch=self.UpdateWatcher)
         index = 0
         for node in self.electionNodeList:
             newNode = self.electionPrefix + node
@@ -59,10 +58,22 @@ class Server():
         if self.leaderNode == self.ID: # if i am the leader
             self.zk.set(self.ID, b"leader")
 
-    def __del__(self):
-        print(f"Deleting server: {self.ID}...")
+
+    def findLeader(self):
+        for node in self.electionNodeList:
+            try:
+                self.zk.exists(node)
+                val = self.zk.get(node)[0]
+                if val == b'leader':
+                    return node
+            except:
+                print("All Servers Down!")
+                return None
+
+    def Disconnect(self):
+        print(f"Disconnecting server: {self.ID}...")
         self.updateElectionNodeList()
-        self.selectLeader()
+        self.leaderNode = self.findLeader()
         # elect the new node if leader is dying
         if self.ID == self.leaderNode:
             print("Leader Node is being shut down...")
@@ -85,12 +96,48 @@ class Server():
                         self.zk.set(newPath, value)
 
         self.zk.delete(self.ID, recursive=True)
+        self.updateElectionNodeList()
+
+    def Reconnect(self):        
+        # ensure election path exists
+        self.zk.ensure_path(self.electionPrefix)
+        # check children at node
+        self.updateElectionNodeList()
+        self.zk.create(self.ID, value = b"invalid", acl= None, ephemeral=False, sequence=False, makepath=False)
+        print(f"New Server Connection: {self.ID}")
+
+        # check children at node
+        self.updateElectionNodeList()
+        print("Current Connected Election Servers:")
+        for node in self.electionNodeList:
+            print(f"\t{node}")
 
     def Read(self, key):
         return self.dictionary[key]
 
     def Add_Update(self, key, value):
         self.dictionary[key] = value
+
+#### WATCHER FUNCTIONS ####
+    def UpdateWatcher(self, event):
+        if (event.type == "UPDATED"):
+            print("**************Update Event**************")
+            self.leaderNode = self.findLeader()
+            if (self.ID != self.leaderNode):
+                print(f"{self.ID} sees Update to leader node: {self.leaderNode}")
+            # on a deleted event, "election" occurs by querying the election servers again
+
+def cleanUp(zk):
+    zk.delete("election", recursive=True)
+    zk.delete("client", recursive=True)
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

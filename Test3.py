@@ -69,6 +69,10 @@ if __name__ == "__main__":
 
     time.sleep(1)
 
+    print("Reconnecting Server 1")
+    server1.Reconnect()
+
+
     server3.Disconnect()
 
     cleanUp(zk)
