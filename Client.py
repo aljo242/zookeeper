@@ -32,6 +32,13 @@ class Client:
  
 
     def Read(self, key):
+        self.getElectionServers()
+
+        for node in self.electionNodeList:
+            if self.zk.exists(node):
+                val = self.zk.get(node)[0]
+                print(f"\tValue from {node} is {val}")
+
         self.leaderNode = self.findLeader()
         path = self.leaderNode + '/' + key
         if self.zk.exists(path):
