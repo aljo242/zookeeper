@@ -20,7 +20,7 @@ def myListener(state):
 		logging.critical("connection is ...")
 
 def printVal(val):
-    print(f"\tval = {str(val)}")
+    print(f"\tRecieved val = {str(val)}")
 
 
 
@@ -66,11 +66,17 @@ if __name__ == "__main__":
     print("Reading value from key: 'hello'...")
     val = client.Read("hello")
     printVal(val)
+    print("Putting value: 'testtest' to key: 'hello'...")
+    client.Add_Update("hello", b'testtest')
 
     time.sleep(1)
 
     print("Reconnecting Server 1")
     server1.Reconnect()
+
+    print("Reading value from key: 'hello'...")
+    val = client.Read("hello")
+    printVal(val)
 
 
     server3.Disconnect()

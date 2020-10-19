@@ -35,9 +35,14 @@ class Client:
         self.getElectionServers()
 
         for node in self.electionNodeList:
-            if self.zk.exists(node):
-                val = self.zk.get(node)[0]
-                print(f"\tValue from {node} is {val}")
+            path = node + '/' + key
+            val = b'invalid'
+            try:
+                val = self.zk.get(path)[0]
+            except:
+                # if we get a NoNodeError exception, the value is none
+                val = None
+            print(f"\tValue from {path} is {val}")
 
         self.leaderNode = self.findLeader()
         path = self.leaderNode + '/' + key

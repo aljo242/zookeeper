@@ -20,7 +20,7 @@ def myListener(state):
 		logging.critical("connection is ...")
 
 def printVal(val):
-    print(f"\tval = {str(val)}")
+    print(f"\tRecieved val = {str(val)}")
 
 
 
